@@ -43,35 +43,43 @@
 
 /* From MSP430-GCC */
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
 
 /* From CONTIKI */
 #include "contiki.h"
 #include "dev/leds.h"
 #include "dev/watchdog.h"
-#include "lib/sensors.h"
+#include "dev/spi.h"
 #include "dev/button-sensor.h"
 #include "dev/sht11-sensor.h"
+#include "lib/sensors.h"
 
 /* From MSP430x5xx */
 #include "uart0.h"
+#include "uart1.h"
 #include "spl.h"
 #include "msp430.h"
 
 /* From platform */
+#include "contiki-conf.h"
 #include "diag.h"
+#include "cc2520.h"
 #include "parallax_pir-555-28027.h"
 
 /* If the macro aren't defined, we consider them like disabled. */
 #ifndef WITH_UIP
+/** By default uIP is disabled. */
 #define WITH_UIP 0
 #endif
 
 #ifndef WITH_UIP6
+/** By default uIP6 is disabled. */
 #define WITH_UIP6 0
 #endif
 
 #ifndef CONTIKI_NO_NET
+/** By default don't use network. */
 #define CONTIKI_NO_NET 0
 #endif
 
@@ -82,15 +90,30 @@
 #if !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6)
 #include "dev/slip.h"
 #include "net/tcpip.h"
+#include "net/netstack.h"
+#ifdef IEEE802154_CONF_PANID
+#define IEEE802154_PANID (IEEE802154_CONF_PANID)
+#else
+#define IEEE802154_PANID (0xBABE)
 #endif
+
+#endif /* !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6) */
 
 #if !CONTIKI_NO_NET && WITH_UIP
 #include "net/uip.h"
 #include "net/uip-fw.h"
 #include "net/uip-fw-drv.h"
+#include "net/uip-over-mesh.h"
 static struct uip_fw_netif slipif =
   {UIP_FW_NETIF(192,168,1,2, 255,255,255,0, slip_send)};
+static struct uip_fw_netif meshif =
+  {UIP_FW_NETIF(172,16,0,0, 255,255,0,0, uip_over_mesh_send)};
 #endif /* !CONTIKI_NO_NET && WITH_UIP */
+
+#if !CONTIKI_NO_NET && WITH_UIP6
+#include "net/uip6.h"
+#include "net/uip-ds6.h"
+#endif /* !CONTIKI_NO_NET && WITH_UIP6 */
 
 SENSORS(&PIR_555_28027_sensor, &button_sensor, &sht11_sensor);
 
@@ -98,8 +121,12 @@ SENSORS(&PIR_555_28027_sensor, &button_sensor, &sht11_sensor);
 #define DEBUG_PROCESS 0
 /** Doesn't display the list of sensors before starting them. */
 #define DEBUG_SENSORS 0
+/** Display the MAC address. */
+#define DEBUG_MAC 1
 /** Enable the diagnostic port. */
 #define DEBUG_DIAGNOSTIC 1
+/** Enable radio. */
+#define DEBUG_RADIO 1
 
 #if DEBUG_PROCESS
 /*---------------------------------------------------------------------------*/
@@ -132,6 +159,47 @@ print_sensors(void)
 }
 /*---------------------------------------------------------------------------*/
 #endif /* DEBUG_SENSORS */
+
+/*---------------------------------------------------------------------------*/
+
+static void
+set_rime_addr(void)
+{
+  rimeaddr_t n_addr;
+
+  memset(&n_addr, 0, sizeof(rimeaddr_t));
+#if WITH_UIP6
+  n_addr.u8[7] = 0x02;
+  n_addr.u8[6] = 0x00;
+#else
+  n_addr.u8[0] = 0x00;
+  n_addr.u8[1] = 0x02;
+#endif
+
+  rimeaddr_set_node_addr(&n_addr);
+}
+
+/*---------------------------------------------------------------------------*/
+
+#if !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6)
+static uint8_t is_gateway;
+
+static void
+set_gateway(void)
+{
+  if(!is_gateway) {
+    leds_on(LEDS_RED);
+    printf("%d.%d: making myself the IP network gateway.\n\n",
+           rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1]);
+    printf("IPv4 address of the gateway: %d.%d.%d.%d\n\n",
+           uip_ipaddr_to_quad(&uip_hostaddr));
+    uip_over_mesh_set_gateway(&rimeaddr_node_addr);
+    uip_over_mesh_make_announced_gateway();
+    is_gateway = 1;
+  }
+}
+
+#endif /* WITH_UIP */
 
 /*---------------------------------------------------------------------------*/
 
@@ -175,15 +243,63 @@ main(void)
   process_start(&etimer_process, NULL);
   /* Initialize the CTimer module */
   ctimer_init();
+
+#if !CONTIKI_NO_NET
+  set_rime_addr();
+  cc2520_init();
+  {
+    uint8_t longaddr[8];
+    uint16_t shortaddr;
+
+    shortaddr = (rimeaddr_node_addr.u8[0] << 8) | rimeaddr_node_addr.u8[1];
+    memset(longaddr, 0, sizeof(longaddr));
+    rimeaddr_copy((rimeaddr_t *)&longaddr, &rimeaddr_node_addr);
+
+#if DEBUG_MAC
+    printf("MAC %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+           longaddr[0], longaddr[1], longaddr[2], longaddr[3],
+           longaddr[4], longaddr[5], longaddr[6], longaddr[7]);
+#endif /* !DEBUG_MAC */
+    cc2520_set_pan_addr(IEEE802154_PANID, shortaddr, longaddr);
+  }
+  cc2520_set_channel(RF_CHANNEL);
+
+#if WITH_UIP6
+  {
+    int i;
+    for(i =0;i<RIMEADDR_SIZE;i++)
+      uip_lladdr.addr[i] = rimeaddr_node_addr.u8[i];
+  }
+#endif /* WITH_UIP6 */
+  queuebuf_init();
+  NETSTACK_RDC.init();
+  NETSTACK_MAC.init();
+  NETSTACK_NETWORK.init();
+#if DEBUG_RADIO
+  printf("%s %s, channel check rate %lu Hz, radio channel %u\n",
+         NETSTACK_MAC.name,
+         NETSTACK_RDC.name,
+         CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval() == 0 ? 1 : NETSTACK_RDC.channel_check_interval()),
+         RF_CHANNEL);
+#endif /* DEBUG_RADIO */
+
+#endif /* !CONTIKI_NO_NET */
+
   /* Initialize the Serial Line module */
 #if CONTIKI_NO_NET || (!WITH_UIP && !WITH_UIP6)
 #if !SL_USE_UART1
   uart0_set_input(serial_line_input_byte);
-#else
+#else /* !SL_USE_UART1 */
   uart1_set_input(serial_line_input_byte);
-#endif
+#endif /* !SL_USE_UART1 */
   serial_line_init();
 #endif
+
+
+#if TIMESYNCH_CONF_ENABLED
+  timesynch_init();
+  timesynch_set_authority_level((rimeaddr_node_addr.u8[0] << 4) + 16);
+#endif /* TIMESYNCH_CONF_ENABLED */
 
 #if !CONTIKI_NO_NET && WITH_UIP
   uip_init();
@@ -191,6 +307,7 @@ main(void)
   uip_fw_init();
   process_start(&uip_fw_process, NULL);
   process_start(&slip_process, NULL);
+  slip_set_input_callback(set_gateway);
   {
       uip_ipaddr_t addr;
 

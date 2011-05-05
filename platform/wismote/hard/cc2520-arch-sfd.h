@@ -1,19 +1,5 @@
-/**
- * \addtogroup wismote
- * @{
- */
-
-/**
- * \file
- *         SPI platform-dependent implementation.
- * \author
- *         Anthony Gelibert <anthony.gelibert@lcis.grenoble-inp.fr>
- * \date
- *         March 21, 2011
- */
-
 /*
- * Copyright (c) 2011, LCIS/CTSYS.
+ * Copyright (c) 2009, Swedish Institute of Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +14,7 @@
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS "AS IS" AND
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
@@ -39,44 +25,16 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * @(#)$Id: cc2520-arch-sfd.h,v 1.3 2010/01/26 10:20:16 adamdunkels Exp $
  */
+#ifndef CC2520_ARCH_SFD_H
+#define CC2520_ARCH_SFD_H
 
-/* From MSP430-GCC */
-#include <signal.h>
+extern volatile uint8_t cc2520_arch_sfd_counter;
+extern volatile uint16_t cc2520_arch_sfd_start_time;
+extern volatile uint16_t cc2520_arch_sfd_end_time;
 
-/* From CONTIKI */
-#include "spi.h"
+void cc2520_arch_sfd_init(void);
 
-/* From platform */
-#include "contiki-conf.h"
-#include "spi-arch.h"
-
-unsigned char spi_busy = 0;
-
-/**
- * Initialize SPI bus.
- */
-void
-spi_init(void)
-{
-  /* === Put state machine in reset === */
-  UCB0CTL1 |= UCSWRST;
-
-  UCB0CTL1 = UCSSEL__SMCLK;
-  UCB0CTL0 |=  UCCKPH | UCSYNC | UCMSB | UCMST; // 3-pin, 8-bit SPI master, rising edge capture
-
-  /* SMCLK / (UCxxBR0 + UCxxBR1 x 256)  */
-  UCB0BRW = 0x04;
-
-  /* Set MOSI and SCLK as OUT and MISO as IN ports */
-  SPI_PORT(SEL) |= (SPI_MOSI | SPI_MISO | SPI_CLK);
-  SPI_PORT(DIR) |= (SPI_MOSI | SPI_CLK);
-  SPI_PORT(DIR) &= ~SPI_MISO;
-
-  /* We don't use SPI IT: UCB0IE |= UCTXIE | UCRXIE; */
-
-  /* === Initialize USCI state machine === */
-  UCB0CTL1 &= ~UCSWRST;
-}
-
-/** @} */
+#endif /* CC2520_ARCH_SFD_H */

@@ -44,19 +44,35 @@
 #ifndef __SPI_ARCH_H__
 #define __SPI_ARCH_H__
 
+/** Macro to wait for TX ready. */
+#define SPI_WAITFORTxREADY()    while(!(UCB0IFG & UCTXIFG))
+/** Macro to wait for TX done.  */
+#define SPI_WAITFOREOTx()       while(!(UCB0IFG & UCTXIFG))
+/** Macro to wait for RX done.  */
+#define SPI_WAITFOREORx()       while(!(UCB0IFG & UCRXIFG))
+/** Macro for "busy wait".      */
+#define SPI_BUSY_WAIT()         while((UCB0STAT & UCBUSY))
+/** TX Buffer.                  */
+#define SPI_TXBUF UCB0TXBUF
+/** RX Buffer.                  */
+#define SPI_RXBUF UCB0RXBUF
+
+/** SPI Port. */
+#define SPI_PORT(type) P3##type
+/** CS1N pin. */
 #define SPI_CS1N BIT0
+/** MOSI pin. */
 #define SPI_MOSI BIT1
+/** MISO pin. */
 #define SPI_MISO BIT2
+/** CLK pin. */
 #define SPI_CLK  BIT3
 
-/** SPI Port SEL. */
-#define SPI_Px_SEL P3SEL
-/** SPI Port DIR. */
-#define SPI_Px_DIR P3DIR
-/** SPI Port IN. */
-#define SPI_Px_IN  P3IN
-/** SPI Port OUT. */
-#define SPI_Px_OUT P3OUT
+#define SPI_FLASH_ENABLE()      //( P4OUT &= ~BV(FLASH_CS) )
+#define SPI_FLASH_DISABLE()     //( P4OUT |=  BV(FLASH_CS) )
+
+#define SPI_FLASH_HOLD()        //( P4OUT &= ~BV(FLASH_HOLD) )
+#define SPI_FLASH_UNHOLD()      //( P4OUT |=  BV(FLASH_HOLD) )
 
 #endif
 

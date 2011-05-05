@@ -1,19 +1,5 @@
-/**
- * \addtogroup wismote
- * @{
- */
-
-/**
- * \file
- *         SPI platform-dependent implementation.
- * \author
- *         Anthony Gelibert <anthony.gelibert@lcis.grenoble-inp.fr>
- * \date
- *         March 21, 2011
- */
-
 /*
- * Copyright (c) 2011, LCIS/CTSYS.
+ * Copyright (c) 2006, Swedish Institute of Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +14,7 @@
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS "AS IS" AND
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
@@ -39,44 +25,61 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * @(#)$Id: cc2520-arch.c,v 1.10 2010/12/16 22:49:33 adamdunkels Exp $
  */
 
-/* From MSP430-GCC */
+#include <io.h>
 #include <signal.h>
 
-/* From CONTIKI */
+#include "contiki.h"
+#include "contiki-net.h"
 #include "spi.h"
 
-/* From platform */
-#include "contiki-conf.h"
-#include "spi-arch.h"
+#include "cc2520.h"
+#include "cc2520-arch.h"
 
-unsigned char spi_busy = 0;
+#ifdef CC2520_CONF_SFD_TIMESTAMPS
+#define CONF_SFD_TIMESTAMPS CC2520_CONF_SFD_TIMESTAMPS
+#endif /* CC2520_CONF_SFD_TIMESTAMPS */
 
-/**
- * Initialize SPI bus.
- */
-void
-spi_init(void)
+#ifndef CONF_SFD_TIMESTAMPS
+#define CONF_SFD_TIMESTAMPS 0
+#endif /* CONF_SFD_TIMESTAMPS */
+
+#ifdef CONF_SFD_TIMESTAMPS
+#include "cc2520-arch-sfd.h"
+#endif
+
+/*---------------------------------------------------------------------------*/
+interrupt(PORT1_VECTOR)
+cc2520_port1_interrupt(void)
 {
-  /* === Put state machine in reset === */
-  UCB0CTL1 |= UCSWRST;
+  ENERGEST_ON(ENERGEST_TYPE_IRQ);
 
-  UCB0CTL1 = UCSSEL__SMCLK;
-  UCB0CTL0 |=  UCCKPH | UCSYNC | UCMSB | UCMST; // 3-pin, 8-bit SPI master, rising edge capture
+  if(cc2520_interrupt()) {
+    LPM4_EXIT;
+  }
 
-  /* SMCLK / (UCxxBR0 + UCxxBR1 x 256)  */
-  UCB0BRW = 0x04;
-
-  /* Set MOSI and SCLK as OUT and MISO as IN ports */
-  SPI_PORT(SEL) |= (SPI_MOSI | SPI_MISO | SPI_CLK);
-  SPI_PORT(DIR) |= (SPI_MOSI | SPI_CLK);
-  SPI_PORT(DIR) &= ~SPI_MISO;
-
-  /* We don't use SPI IT: UCB0IE |= UCTXIE | UCRXIE; */
-
-  /* === Initialize USCI state machine === */
-  UCB0CTL1 &= ~UCSWRST;
+  ENERGEST_OFF(ENERGEST_TYPE_IRQ);
 }
 
-/** @} */
+/*---------------------------------------------------------------------------*/
+void
+cc2520_arch_init(void)
+{
+  /* all input by default, set these as output */
+  CC2520_CSN_PORT(DIR) |= CC2520_CSN_PIN;
+  CC2520_VREG_PORT(DIR) |= CC2520_VREG_PIN;
+  CC2520_RESET_PORT(DIR) |= CC2520_RESET_PIN;
+
+  P1DIR &= ~(CC2520_FIFOP_PIN | CC2520_FIFO_PIN | CC2520_CCA_PIN);
+  P2DIR &= ~CC2520_SFD_PIN;
+
+#if CONF_SFD_TIMESTAMPS
+  cc2520_arch_sfd_init();
+#endif
+
+  CC2520_SPI_DISABLE();                /* Unselect radio. */
+}
+/*---------------------------------------------------------------------------*/

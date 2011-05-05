@@ -120,16 +120,6 @@ typedef unsigned short uip_stats_t;
 #define UIP_CONF_MAX_LISTENPORTS   0
 #endif
 
-/* ----- SPI module ----- */
-/** SPI: Macro to wait for TX ready. */
-#define SPI_WAITFORTxREADY() while (!(IFG2 & UCB0TXIFG))
-/** SPI: Macro to wait for TX done. */
-#define SPI_WAITFOREOTx() while (UCB0STAT & UCBUSY)
-/** SPI: TX Buffer. */
-#define SPI_TXBUF UCB0TXBUF
-/** SPI: RX Buffer. */
-#define SPI_RXBUF UCB0RXBUF
-
 /* ----- CLOCK module ----- */
 /** CLOCK: this platform uses XT1 clock. */
 #define XT1_CONF_CLOCK 1

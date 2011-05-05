@@ -54,16 +54,34 @@
 #define CCIF
 #define CLIF
 
+/* ----- Various stuffs ----- */
+/* See ./core/lib/petsciiconv.h */
+#define WITH_ASCII 1
+
 /* ----- Clock module ----- */
 #define CLOCK_CONF_SECOND 128UL
 /* XXX_PTV Change to long */
 typedef unsigned short clock_time_t;
 
+/* ----- Energest module ----- */
+/** Enable energest. */
+#define ENERGEST_CONF_ON 1
+
+/* ----- Profile module ----- */
+/** Disable profile module. */
+#define PROFILE_CONF_ON 0
+
+/* ----- Process module ----- */
+#define PROCESS_CONF_NUMEVENTS 8
+#define PROCESS_CONF_STATS 1
+
+#ifndef CONTIKI_NO_NET
 /* ----- UIP module ----- */
 /* ---- General ---- */
 typedef unsigned short uip_stats_t;
 /** Globally enable logging. */
 #define PLATFORM_LOGGING           1
+
 #if PLATFORM_LOGGING
 /** Enable UIP logging. */
 #define UIP_CONF_LOGGING           1
@@ -79,17 +97,25 @@ typedef unsigned short uip_stats_t;
 /** Disable UIP statistics. */
 #define UIP_CONF_STATISTICS        0
 #endif
+
 /** Disable PING ADDR. CONF. */
 #define UIP_CONF_PINGADDRCONF      0
 /** Disable IP packet reassembly. */
 #define UIP_CONF_REASSEMBLY        0
-/** Size of the uIP buffer. */
-#define UIP_CONF_BUFFER_SIZE    1514
+
+/* ---- DHCP ----- */
+#define UIP_CONF_DHCP_LIGHT
+
+/* ---- ICMP ---- */
+/** Enable destination unreachable. */
+#define UIP_CONF_ICMP_DEST_UNREACH 1
+
 /* ---- UDP ---- */
 /** Enable UDP compilation. */
 #define UIP_CONF_UDP               1
 /** Disable UDP checksum. */
 #define UIP_CONF_UDP_CHECKSUMS     0
+
 #if UIP_CONF_UDP
 /** Number of simultaneous connection. */
 #define UIP_CONF_UDP_CONNS         5
@@ -104,20 +130,192 @@ typedef unsigned short uip_stats_t;
 /* ---- TCP ---- */
 /** Enable TCP compilation. */
 #define UIP_CONF_TCP               1
+
 #if UIP_CONF_TCP
+#ifndef UIP_CONF_RECEIVE_WINDOW
+/** Default TCP Receive window. */
+#define UIP_CONF_RECEIVE_WINDOW  48
+#endif /* UIP_CONF_RECEIVE_WINDOW */
+#ifndef UIP_CONF_TCP_MSS
+/** Default TCP MSS. */
+#define UIP_CONF_TCP_MSS         48
+#endif /* UIP_CONF_TCP_MSS */
 /** Enable open connection. */
 #define UIP_CONF_ACTIVE_OPEN       1
 /** Number of open connection. */
 #define UIP_CONF_MAX_CONNECTIONS   5
 /** Number of open ports. */
 #define UIP_CONF_MAX_LISTENPORTS   5
-#else
+/** Disable TCP split. */
+#define UIP_CONF_TCP_SPLIT         0
+#else /* UIP_CONF_TCP */
 /** Disable open connex. */
 #define UIP_CONF_ACTIVE_OPEN       0
 /** No open connex. */
 #define UIP_CONF_MAX_CONNECTIONS   0
 /** No port available. */
 #define UIP_CONF_MAX_LISTENPORTS   0
+#endif /* UIP_CONF_TCP */
+
+/* ---- Stacks ---- */
+#ifndef NETSTACK_CONF_MAC
+/** Default MAC Layer: CSMA. */
+#define NETSTACK_CONF_MAC     csma_driver
+#endif /* NETSTACK_CONF_MAC */
+
+#ifndef NETSTACK_CONF_RDC
+/** Default RDC Layer: Contiki MAC. */
+#define NETSTACK_CONF_RDC     contikimac_driver
+#endif /* NETSTACK_CONF_RDC */
+
+#ifndef NETSTACK_CONF_RADIO
+/** Default Radio Layer: CC2520. */
+#define NETSTACK_CONF_RADIO   cc2520_driver
+#endif /* NETSTACK_CONF_RADIO */
+
+#ifndef NETSTACK_CONF_FRAMER
+/** Default Framer Layer : Framer 802.15.4. */
+#define NETSTACK_CONF_FRAMER  framer_802154
+#endif /* NETSTACK_CONF_FRAMER */
+
+/* ----- RDC Layer ----- */
+#ifndef NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE
+#define NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE 8
+#endif /* NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE */
+
+/* ----- CC2520 ----- */
+#ifndef CC2520_CONF_AUTOACK
+/** Enable Auto-ACK by default */
+#define CC2520_CONF_AUTOACK              1
+#endif /* CC2520_CONF_AUTOACK */
+
+/* ----- Contiki MAC Layer ----- */
+#define CONTIKIMAC_CONF_BROADCAST_RATE_LIMIT 0
+
+/* ----- Packet buffer ----- */
+#define PACKETBUF_CONF_ATTRS_INLINE 1
+
+/* ----- Radio ----- */
+#ifndef RF_CHANNEL
+/** RF Channel. */
+#define RF_CHANNEL 26
+#endif /* RF_CHANNEL */
+/** Default IEEE 802.15.4 PAN ID: 0xBABE. */
+#define IEEE802154_CONF_PANID                    0xBABE
+
+
+#if WITH_UIP6
+#ifndef NETSTACK_CONF_NETWORK
+/** Default Network Layer: SICSLowPan. */
+#define NETSTACK_CONF_NETWORK           sicslowpan_driver
+#endif /* NETSTACK_CONF_NETWORK */
+
+/* ----- SICSLOWPAN Layer ----- */
+#define SICSLOWPAN_CONF_COMPRESSION_IPV6        0
+#define SICSLOWPAN_CONF_COMPRESSION_HC1         1
+#define SICSLOWPAN_CONF_COMPRESSION_HC01        2
+#define SICSLOWPAN_CONF_COMPRESSION             SICSLOWPAN_COMPRESSION_HC06
+#define SICSLOWPAN_CONF_CONVENTIONAL_MAC        1
+#define SICSLOWPAN_CONF_FRAG                    1
+#define SICSLOWPAN_CONF_MAXAGE                  8
+#define SICSLOWPAN_CONF_MAX_ADDR_CONTEXTS       2
+#define SICSLOWPAN_CONF_MAX_MAC_TRANSMISSIONS   5
+
+/* ----- CXMAC Layer ----- */
+#define CXMAC_CONF_ANNOUNCEMENTS         0
+
+/* ----- XMAC Layer ----- */
+#define XMAC_CONF_ANNOUNCEMENTS          0
+
+#ifndef QUEUEBUF_CONF_NUM
+#define QUEUEBUF_CONF_NUM                8
+#endif
+
+#define UIP_CONF_LL_802154              1
+#define UIP_CONF_LLH_LEN                0
+#define UIP_CONF_ROUTER                 1
+
+/* ----- DS6 ----- */
+#ifndef UIP_CONF_DS6_NBR_NBU
+#define UIP_CONF_DS6_NBR_NBU     30
+#endif /* UIP_CONF_DS6_NBR_NBU */
+#ifndef UIP_CONF_DS6_ROUTE_NBU
+#define UIP_CONF_DS6_ROUTE_NBU   30
+#endif /* UIP_CONF_DS6_ROUTE_NBU */
+
+/* ----- ND6 ----- */
+#define UIP_CONF_ND6_SEND_RA            0
+#define UIP_CONF_ND6_REACHABLE_TIME     600000
+#define UIP_CONF_ND6_RETRANS_TIMER      10000
+#define UIP_CONF_ND6_MAX_PREFIXES       3
+#define UIP_CONF_ND6_MAX_NEIGHBORS      4
+#define UIP_CONF_ND6_MAX_DEFROUTERS     2
+
+#define UIP_CONF_NETIF_MAX_ADDRESSES    3
+
+/* ----- IPv6 ----- */
+#define UIP_CONF_IPV6                   1
+#define UIP_CONF_IPV6_CHECKS            0
+#define UIP_CONF_IPV6_REASSEMBLY        0
+#define UIP_CONF_IPV6_QUEUE_PKT         0
+#define UIP_CONF_IPV6_RPL               1
+
+/* ----- IP ----- */
+/** Disable IP Forward */
+#define UIP_CONF_IP_FORWARD      1
+
+#else /* WITH_UIP6 */
+#ifndef NETSTACK_CONF_NETWORK
+/** Default Network Layer: RIME. */
+#define NETSTACK_CONF_NETWORK rime_driver
+#endif /* NETSTACK_CONF_NETWORK */
+
+#define COLLECT_CONF_ANNOUNCEMENTS       1
+
+/* ----- RIME Layer ----- */
+#define RIMEADDR_CONF_SIZE               8
+
+/* ----- CXMAC Layer ----- */
+#define CXMAC_CONF_ANNOUNCEMENTS         0
+#define CXMAC_CONF_COMPOWER              1
+
+/* ----- XMAC Layer ----- */
+#define XMAC_CONF_ANNOUNCEMENTS          0
+#define XMAC_CONF_COMPOWER               1
+
+/* ----- Contiki MAC Layer ----- */
+#define CONTIKIMAC_CONF_ANNOUNCEMENTS    0
+#define CONTIKIMAC_CONF_COMPOWER         1
+
+#ifndef COLLECT_NEIGHBOR_CONF_MAX_COLLECT_NEIGHBORS
+#define COLLECT_NEIGHBOR_CONF_MAX_COLLECT_NEIGHBORS     32
+#endif /* COLLECT_NEIGHBOR_CONF_MAX_COLLECT_NEIGHBORS */
+
+#ifndef QUEUEBUF_CONF_NUM
+#define QUEUEBUF_CONF_NUM                16
+#endif /* QUEUEBUF_CONF_NUM */
+
+#ifndef TIMESYNCH_CONF_ENABLED
+#define TIMESYNCH_CONF_ENABLED           0
+#endif /* TIMESYNCH_CONF_ENABLED */
+
+#if TIMESYNCH_CONF_ENABLED
+/* CC2520 SDF timestamps must be on if timesynch is enabled. */
+#undef CC2520_CONF_SFD_TIMESTAMPS
+#define CC2520_CONF_SFD_TIMESTAMPS       1
+#endif /* TIMESYNCH_CONF_ENABLED */
+
+/** Enable IP Forward */
+#define UIP_CONF_IP_FORWARD             1
+
+#endif /* WITH_UIP6 */
+
+#else /* CONTIKI_NO_NET */
+
+/** Disable UDP. */
+#define UIP_CONF_UDP 0
+/** Disable TCP. */
+#define UIP_CONF_TCP 0
 #endif
 
 /* ----- CLOCK module ----- */

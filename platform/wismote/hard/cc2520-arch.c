@@ -36,6 +36,7 @@
 #include "contiki-net.h"
 #include "spi.h"
 
+#include "iohandlers.h"
 #include "cc2520.h"
 #include "cc2520-arch.h"
 
@@ -52,22 +53,25 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
-interrupt(PORT1_VECTOR)
-cc2520_port1_interrupt(void)
+static void
+cc2520_interrupt_handler(void)
 {
-  ENERGEST_ON(ENERGEST_TYPE_IRQ);
-
   if(cc2520_interrupt()) {
     LPM4_EXIT;
   }
-
-  ENERGEST_OFF(ENERGEST_TYPE_IRQ);
 }
 
 /*---------------------------------------------------------------------------*/
+
+HWCONF_IRQ(CC2520, 1, 6, cc2520_interrupt_handler)
+
+/*---------------------------------------------------------------------------*/
+
 void
 cc2520_arch_init(void)
 {
+  CC2520_SET_HANDLER();
+
   /* all input by default, set these as output */
   CC2520_CSN_PORT(DIR) |= CC2520_CSN_PIN;
   CC2520_VREG_PORT(DIR) |= CC2520_VREG_PIN;

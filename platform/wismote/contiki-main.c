@@ -162,6 +162,8 @@ print_sensors(void)
 
 /*---------------------------------------------------------------------------*/
 
+#if !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6)
+
 static void
 set_rime_addr(void)
 {
@@ -181,7 +183,6 @@ set_rime_addr(void)
 
 /*---------------------------------------------------------------------------*/
 
-#if !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6)
 static uint8_t is_gateway;
 
 static void
@@ -199,7 +200,7 @@ set_gateway(void)
   }
 }
 
-#endif /* WITH_UIP */
+#endif /* !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6) */
 
 /*---------------------------------------------------------------------------*/
 
@@ -244,7 +245,7 @@ main(void)
   /* Initialize the CTimer module */
   ctimer_init();
 
-#if !CONTIKI_NO_NET
+#if !CONTIKI_NO_NET && (WITH_UIP || WITH_UIP6)
   set_rime_addr();
   cc2520_init();
   {

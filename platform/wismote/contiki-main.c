@@ -365,19 +365,11 @@ main(void)
   while (1) {
     int r;
 
-#if PROFILE_CONF_ON
-    profile_episode_start();
-#endif /* PROFILE_CONF_ON */
-
     do {
       watchdog_periodic();
       r = process_run();
     }
     while (r > 0);
-
-#if PROFILE_CONF_ON
-    profile_episode_end();
-#endif /* PROFILE_CONF_ON */
 
     /* Idle processing */
     int s = splhigh(); /* Disable interrupts. */

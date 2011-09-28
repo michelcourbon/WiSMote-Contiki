@@ -1,0 +1,11 @@
+CONTIKI_PROJECT = luminosity
+
+all: $(CONTIKI_PROJECT)
+
+CONTIKI_NO_NET=1
+
+CONTIKI_SOURCEFILES += adc.c
+
+CLEAN += $(CONTIKI_PROJECT).$(TARGET) $(CONTIKI_PROJECT).hex
+CONTIKI = ../..
+include $(CONTIKI)/Makefile.include

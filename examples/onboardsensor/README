@@ -1,0 +1,13 @@
+This example demonstrate acquisition of the analog onboard sensor
+and print the result on the usb/UART..
+to switch between luminosity APDS or CTN temperature measurement
+comment the line in onbardsensor.c
+ 
+* Luminosity sensor APDS measurement 
+for significant measurement use all the LED off
+so modify the >platform>wismote>contiki-main.c
+by comment this 
+  //  leds_on(LEDS_GREEN);
+after the initialization sequence instructions
+
+be carefull : power consumption not optimized.. chip power gpio always activated

@@ -97,7 +97,10 @@ static struct uip_fw_netif slipif =
   {UIP_FW_NETIF(192,168,1,2, 255,255,255,0, slip_send)};
 #endif /* !CONTIKI_NO_NET && WITH_UIP */
 
-SENSORS(&button_sensor);
+
+#include "multsht15-sensors.h"
+SENSORS(&button_sensor, &upper_sensor, &lower_sensor);
+//SENSORS(&button_sensor);
 
 /** Don't display the list of auto-processes before executing them. */
 #define DEBUG_PROCESS 0

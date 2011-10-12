@@ -69,40 +69,40 @@ static void printSensor(const struct sensors_sensor sensor)
       ds2411_id[0], ds2411_id[1], ds2411_id[2], ds2411_id[3],
       ds2411_id[4], ds2411_id[5], ds2411_id[6], ds2411_id[7]);
 #endif
-  printf("Sensor '%s':\n", sensor.type);
+  printf("Sensor '%s': ", sensor.type);
   /* Enable the sensor. */
   SENSORS_ACTIVATE(sensor);
   /* Read the temperature. */
   tmp = sensor.value(SHT1X_SENSOR_TEMP);
   if (tmp == -1)
   {
-    printf("TMP: N/A\n");
+    printf("TMP: N/A ");
   }
   else
   {
-    printf("TMP: %d\n", tmp);
+    printf("TMP: %d ", tmp);
   }
 
   /* Read the humidity */
   rh = sensor.value(SHT1X_SENSOR_HUMIDITY);
   if (rh == -1)
   {
-    printf("HR:  N/A\n");
+    printf("HR:  N/A ");
   }
   else
   {
-    printf("HR:  %d\n", rh);
+    printf("HR:  %d ", rh);
   }
   /* Check the battery warning */
 
   pwr = sensor.value(SHT1X_SENSOR_BATTERY_INDICATOR);
   if (pwr == -1)
   {
-      printf("PWR: N/A\n");
+      printf("PWR: N/A\n\r");
   }
   else
   {
-      printf("PWR: %d\n", pwr);
+      printf("PWR: %d\n\r", pwr);
   }
   /* Disable the sensor */
   SENSORS_DEACTIVATE(sensor);
@@ -124,10 +124,10 @@ PROCESS_THREAD(multsht15_process, ev, data)
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
     printSensor(upper_sensor);
-    watchdog_periodic();
-    printSensor(middle_upper_sensor);
-    watchdog_periodic();
-    printSensor(middle_lower_sensor);
+    //watchdog_periodic();
+    //printSensor(middle_upper_sensor);
+    //watchdog_periodic();
+    //printSensor(middle_lower_sensor);
     watchdog_periodic();
     printSensor(lower_sensor);
   }

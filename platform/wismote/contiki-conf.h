@@ -262,6 +262,7 @@ typedef unsigned short uip_stats_t;
 
 /* ----- Includes ----- */
 #include "types.h"
+#include <legacymsp430.h>
 #include <msp430f5437.h>
 #if UIP_USE_DS2411_FOR_MAC_ADDRESS
 #include "ds2411-arch.h"
